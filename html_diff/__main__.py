@@ -143,14 +143,13 @@ class TestRequestHandler(BaseHTTPRequestHandler):
             new_rendered = ""
             diff_raw = "<h3>{}</h3><pre>{}</pre>".format(e, traceback.format_exc())
             mean_time = "-"
-        diff_escaped = html.escape(diff_raw)
         self.wfile.write(bytes(html_template.format(
-            old=old,
-            new=new,
+            old=html.escape(old),
+            new=html.escape(new),
             old_rendered=old_rendered,
             new_rendered=new_rendered,
             diff=diff_raw,
-            diff_escaped=diff_escaped,
+            diff_escaped=html.escape(diff_raw),
             test_passed=str(is_diff_valid(old, new, diff_raw)),
             mean_time=mean_time,
         ), "utf-8"))
