@@ -22,7 +22,7 @@ Example use case: having MathJax elements wrapped into ```<span class="math-tex"
 
 ```python
 >>> from html_diff import tags_fcts_as_blocks
->>> tags_fcts_as_blocks.append('lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", [])')
+>>> tags_fcts_as_blocks.append(lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", []))
 ```
 
 
