@@ -1,6 +1,6 @@
 # HTML-Diff: HTML-formatted diff'ing of HTML snippets
 
-Compares two HTML snippets strings and returns the diff as a valid HTML snippet with changes wrapped in <del> and <ins> tags.
+Compares two HTML snippets strings and returns the diff as a valid HTML snippet with changes wrapped in &lt;del&gt; and &lt;ins&gt; tags.
 
 Relies on ```BeautifulSoup4``` with ```html.parser``` backend for HTML parsing and dumping.
 
@@ -41,9 +41,9 @@ You can specify further options:
 
 - ```-a``` or ```--address```: custom address of the server (default: 127.0.0.1)
 - ```-p``` or ```--port```: custom port of the server (default: 8080)
-- ```-b``` or ```--blocks```: definitions of functions to be added to tags_fcts_as_blocks, e.g. for treating ```<span class="math-tex">\(...\)</span>``` as insecable blocks:
+- ```-b``` or ```--blocks```: definitions of functions to be added to ```tags_fcts_as_blocks```, e.g. for treating ```<span class="math-tex">\(...\)</span>``` as insecable blocks:
 
-```python
-lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", [])
+```bash
+python -m html_diff -b 'lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", [])'
 ```
 
