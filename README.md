@@ -25,6 +25,21 @@ Example use case: having MathJax elements wrapped into ```<span class="math-tex"
 >>> tags_fcts_as_blocks.append(lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", []))
 ```
 
+Without it (does not render correctly with MathJax):
+
+```python
+>>> diff(r'<span class="math-tex">\(\vec{v}\)</span>', r'<span class="math-tex">\(\vec{w}\)</span>')
+'<span class="math-tex">\\(\\vec{<del>v</del><ins>w</ins>}\\)</span>'
+```
+
+With it:
+
+```python
+>>> diff(r'<span class="math-tex">\(\vec{v}\)</span>', r'<span class="math-tex">\(\vec{w}\)</span>')
+'<del><span class="math-tex">\\(\\vec{v}\\)</span></del><ins><span class="math-tex">\\(\\vec{w}\\)</span></ins>'
+```
+
+
 
 ## Testing
 
