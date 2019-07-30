@@ -16,7 +16,7 @@ Relies on ```BeautifulSoup4``` with ```html.parser``` backend for HTML parsing a
 ```
 
 
-### Add custom tags to be treated as insecable blocks
+### Adding custom tags to be treated as insecable blocks
 
 Example use case: having MathJax elements wrapped into ```<span class="math-tex">\(...\)</span>``` and wanting to avoid ```<del>``` and ```<ins>``` tags inside the ```\(...\)``` (which would be badly rendered):
 
