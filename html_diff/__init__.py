@@ -41,7 +41,7 @@ class StringLeafMatch(Match):
     def __init__(self, a, b):
         self.a = a
         self.b = b
-        self.sm = difflib.SequenceMatcher(None, self.a, self.b, autojunk=False)
+        self.sm = difflib.SequenceMatcher(a=self.a, b=self.b)
     @property
     def matching_length(self):
         return sum(b.size for b in self.sm.get_matching_blocks())
