@@ -39,6 +39,7 @@ With it:
 '<del><span class="math-tex">\\(\\vec{v}\\)</span></del><ins><span class="math-tex">\\(\\vec{w}\\)</span></ins>'
 ```
 
+The functions in ```tags_fcts_as_blocks``` should take a ```bs4.element.Tag``` as input and return a ```bool```; the tags are tested against all functions in the list, and are considered insecable blocks if any call returns ```True```.
 
 
 ## Testing
