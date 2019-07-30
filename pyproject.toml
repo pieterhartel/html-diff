@@ -5,8 +5,8 @@ description = "HTML-formatted diff'ing of HTML snippets"
 license = "AGPL-3.0+"
 authors = ["Quentin Wenger <quentin.wenger@oly-exams.org>"]
 readme = "README.md"
-homepage = "https://gitlab.com/matpi/html_diff"
-repository = "https://gitlab.com/matpi/html_diff"
+homepage = "https://gitlab.com/matpi/html-diff"
+repository = "https://gitlab.com/matpi/html-diff"
 keywords = ["html", "diff"]
 classifiers = [
     "Development Status :: 4 - Beta",
