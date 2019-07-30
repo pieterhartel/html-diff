@@ -96,6 +96,9 @@ class NoLeafMatch(Match):
     def __init__(self, a_s, b_s):
         self.a_s = a_s
         self.b_s = b_s
+    @property
+    def matching_length(self):
+        return 0
     def dump_to_tag_list(self, soup):
         tags = []
         if self.a_s:
