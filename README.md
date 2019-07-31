@@ -108,7 +108,7 @@ Run
 python -m html_diff
 ```
 
-at the root of the project and navigate to 127.0.0.1:8080 with your browser.
+and navigate to 127.0.0.1:8080 with your browser.
 
 You can specify further options:
 
