@@ -61,6 +61,8 @@ By default, the diff'ing algorithm for plain text parts does not care about word
 '<del>OlyExams</del><ins>ExamTools</ins>'
 ```
 
+In uncuttable words mode, non-word characters correspond to `re`'s `\W` pattern.
+
 
 ## Testing
 
