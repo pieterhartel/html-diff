@@ -4,6 +4,11 @@ Compares two HTML snippets strings and returns the diff as a valid HTML snippet 
 
 Relies on `BeautifulSoup4` with `html.parser` backend for HTML parsing and dumping.
 
+HTML-Diff focusses on providing *valid* diffs, that is:
+
+1. The returned strings represent valid HTML snippets;
+2. Provided that the input snippets represent valid HTML snippets containing no `<del>` or `<ins>` tags, they can be identically reconstructed from the diff output, by removing `<ins>` tags and their content and replacing `<del>` tags by their content for the *old* snippet, the other way round for the *new* one. Functions are provided in the `check` module for those reconstructions and checking that the reconstructions match the inputs.
+
 
 ## Usage
 
@@ -62,6 +67,24 @@ By default, the diff'ing algorithm for plain text parts does not care about word
 ```
 
 In uncuttable words mode, non-word characters correspond to `re`'s `\W` pattern.
+
+
+### Reconstructing *old* and *new* from *diff*
+
+```python
+>>> old = "old_string"
+>>> new = "new_string"
+>>> d = diff(old, new)
+>>> from html_diff.check import new_from_diff
+>>> new == new_from_diff(d)
+True
+>>> from html_diff.check import old_from_diff
+>>> old == old_from_diff(d)
+True
+>>> from html_diff.check import is_diff_valid
+>>> is_diff_valid(old, new, d)
+True
+```
 
 
 ## Testing
