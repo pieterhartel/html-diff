@@ -23,6 +23,12 @@ test_diffs = (
         "<del><em>a</em></del><em>bb</em><ins><em>a</em></ins>",
         "<del><em>a</em></del><em>bb</em><ins><em>a</em></ins>",
     ),
+    (
+        "OlyExams",
+        "ExamTools",
+        "<del>Oly</del>Exam<ins>Tool</ins>s",
+        "<del>OlyExams</del><ins>ExamTools</ins>",
+    ),
 )
 
 
