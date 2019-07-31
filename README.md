@@ -122,3 +122,25 @@ python -m html_diff -b 'lambda tag: tag.name == "span" and "math-tex" in tag.att
 
 - `-u` or `--uncuttable-words`: prevent cutting words in the diff (modified words are entirely deleted and reinserted)
 
+
+## Algorithm
+
+### Matching
+
+1. Parse the inputs with `BeautifulSoup4`; this yields two iterables of elements, either `bs4.element.NavigableString` or `bs4.element.Tag`.
+2. Compare each element of the first iterable with each element of the second one. A match is only allowed in two cases:
+	- Both elements are `bs4.element.NavigableString`'s (depending on the *cuttable words* configuration, matching is done on a list of words rather than on the raw string);
+	- Both elements are `bs4.element.Tag`'s and their `name` and `attrs` attributes exactly match.
+3. Each match is temporarily stored, together with a "score":
+	- For `bs4.element.NavigableString` matches, their matching length as per `difflib.SequenceMatcher`;
+	- For `bs4.element.Tag` matches that are treated as blocks (those that test `True` with a function of `config.config.tags_fcts_as_blocks`), tags that differ have a matching length of `0`. Tags comparing equal are assigned following matching length: the length of the tag itself for *empty* tags (e.g. `<br />`) (this is a mostly arbitrary choice), else the length of the content of the tag (`tag.string`);
+	- For other, "conventional" `bs4.element.Tag` matches, the matching length is the sum of matching lengths of their children using the same algorithm recursively.
+4. The highest scoring match is kept and the algorithm recursively repeated on the subiterables before and after the matching elements. Each match thus gets (maximally) a `match_before` and a `match_after` assigned.
+5. Regions without match are stored as "no-matches". With them, both iterables are completely covered by matches and no-matches.
+
+
+### Dumping
+
+6. With those tree match structures, dumping can be done directly, recursively, by dumping the `match_before` first, then the matched element itself, finally the `match_after`. Matched `bs4.element.NavigableString`'s are dumped parts by parts following the blocks (of words or of characters, depending on the *cuttable words* configuration) found by `difflib.SequenceMatcher`. Matched `bs4.element.Tag`'s to be treated as blocks are either dumped without change if fully matching, else are first completely deleted and then completely reinserted. No-matches elements are dumped as completely deleted and completely inserted.
+7. Dumping is done in a `BeautifulSoup4` soup, then output as a string.
+
