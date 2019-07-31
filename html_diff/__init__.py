@@ -16,17 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import difflib
+import re
 
 import bs4
 
+from .config import config
 
-
-tags_fcts_as_blocks = [
-    lambda tag: tag.is_empty_element,
-]
 
 
 class Match:
@@ -39,27 +37,49 @@ class Match:
 
 class StringLeafMatch(Match):
     def __init__(self, a, b):
-        self.a = a
-        self.b = b
+        if config.cuttable_words:
+            self.a = a
+            self.b = b
+        else:
+            self.a = self.cut(a)
+            self.b = self.cut(b)
         self.sm = difflib.SequenceMatcher(a=self.a, b=self.b)
+    @staticmethod
+    def cut(s):
+        return [x for x in re.split(r"(\W)", s) if x]
     @property
     def matching_length(self):
-        return sum(b.size for b in self.sm.get_matching_blocks())
+        if config.cuttable_words:
+            return sum(b.size for b in self.sm.get_matching_blocks())
+        else:
+            return sum(len(x) for b in self.sm.get_matching_blocks() for x in self.a[b.a:b.a + b.size])
     def dump_to_tag_list(self, soup):
         if self.a == self.b:
-            return [self.a]
+            if config.cuttable_words:
+                return [self.a]
+            else:
+                return ["".join(self.a)]
         else:
             tags = []
             for opcode, i1, i2, j1, j2 in self.sm.get_opcodes():
                 if opcode == "equal":
-                    tags.append(self.a[i1:i2])
+                    if config.cuttable_words:
+                        tags.append(self.a[i1:i2])
+                    else:
+                        tags.append("".join(self.a[i1:i2]))
                 if opcode in ("delete", "replace"):
                     tag = soup.new_tag("del")
-                    tag.append(self.a[i1:i2])
+                    if config.cuttable_words:
+                        tag.append(self.a[i1:i2])
+                    else:
+                        tag.append("".join(self.a[i1:i2]))
                     tags.append(tag)
                 if opcode in ("insert", "replace"):
                     tag = soup.new_tag("ins")
-                    tag.append(self.b[j1:j2])
+                    if config.cuttable_words:
+                        tag.append(self.b[j1:j2])
+                    else:
+                        tag.append("".join(self.b[j1:j2]))
                     tags.append(tag)
             return tags
 
@@ -144,7 +164,7 @@ class TreeMatch(Match):
                     and a_child.name == b_child.name
                     and a_child.attrs == b_child.attrs
                 ):
-                    if any(fct(a_child) for fct in tags_fcts_as_blocks):
+                    if any(fct(a_child) for fct in config.tags_fcts_as_blocks):
                         match = BlockLeafMatch(a_child, b_child)
                     else:
                         match = cls.from_children(a_child.children, b_child.children, a_child)

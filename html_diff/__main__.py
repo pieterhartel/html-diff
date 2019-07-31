@@ -29,8 +29,8 @@ from urllib.parse import parse_qs
 import bs4
 
 from html_diff import diff
-from html_diff import tags_fcts_as_blocks
 from html_diff.check import is_diff_valid
+from html_diff.config import config
 
 
 
@@ -166,10 +166,12 @@ if __name__ == "__main__":
         help="definitions of tag -> bool functions to append to tags_fcts_as_blocks",
         action="append",
     )
+    parser.add_argument("-u", "--uncuttable-words", help="prevent cutting words", action="store_true")
     args = parser.parse_args()
     if args.blocks is not None:
         for fct_def in args.blocks:
-            tags_fcts_as_blocks.append(eval(fct_def))
+            config.tags_fcts_as_blocks.append(eval(fct_def))
+    config.cuttable_words = not args.uncuttable_words
     print("Starting server...")
     address = "127.0.0.1" if args.address is None else args.address
     port = 8080 if args.port is None else args.port

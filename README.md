@@ -1,8 +1,8 @@
 # HTML-Diff: HTML-formatted diff'ing of HTML snippets
 
-Compares two HTML snippets strings and returns the diff as a valid HTML snippet with changes wrapped in ```<del>``` and ```<ins>``` tags.
+Compares two HTML snippets strings and returns the diff as a valid HTML snippet with changes wrapped in `<del>` and `<ins>` tags.
 
-Relies on ```BeautifulSoup4``` with ```html.parser``` backend for HTML parsing and dumping.
+Relies on `BeautifulSoup4` with `html.parser` backend for HTML parsing and dumping.
 
 
 ## Usage
@@ -18,11 +18,11 @@ Relies on ```BeautifulSoup4``` with ```html.parser``` backend for HTML parsing a
 
 ### Adding custom tags to be treated as insecable blocks
 
-Example use case: having MathJax elements wrapped into ```<span class="math-tex">\(...\)</span>``` and wanting to avoid ```<del>``` and ```<ins>``` tags inside the ```\(...\)``` (which would be badly rendered):
+Example use case: having MathJax elements wrapped into `<span class="math-tex">\(...\)</span>` and wanting to avoid `<del>` and `<ins>` tags inside the `\(...\)` (which would be badly rendered):
 
 ```python
->>> from html_diff import tags_fcts_as_blocks
->>> tags_fcts_as_blocks.append(lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", []))
+>>> from html_diff.config import config
+>>> config.tags_fcts_as_blocks.append(lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", []))
 ```
 
 Without it (does not render correctly with MathJax):
@@ -39,7 +39,27 @@ With it:
 '<del><span class="math-tex">\\(\\vec{v}\\)</span></del><ins><span class="math-tex">\\(\\vec{w}\\)</span></ins>'
 ```
 
-The functions in ```tags_fcts_as_blocks``` should take a ```bs4.element.Tag``` as input and return a ```bool```; the tags are tested against all functions in the list, and are considered insecable blocks if any call returns ```True```.
+The functions in `config.config.tags_fcts_as_blocks` should take a `bs4.element.Tag` as input and return a `bool`; the tags are tested against all functions in the list, and are considered insecable blocks if any call returns `True`.
+
+
+### Preventing word cut in diff
+
+By default, the diff'ing algorithm for plain text parts does not care about words - if a word part is modified, that part gets `<del>`'ed and `<ins>`'ed, while the rest of the word remains untouched. It may however be more readable to have full words deleted and reinserted. To ensure this, switch `config.config.cuttable_words` to `False`:
+
+
+`config.config.cuttable_words == True` (default):
+
+```python
+>>> diff("OlyExams", "ExamTools")
+'<del>Oly</del>Exam<ins>Tool</ins>s'
+```
+
+`config.config.cuttable_words == False`:
+
+```python
+>>> diff("OlyExams", "ExamTools")
+'<del>OlyExams</del><ins>ExamTools</ins>'
+```
 
 
 ## Testing
@@ -67,11 +87,13 @@ at the root of the project and navigate to 127.0.0.1:8080 with your browser.
 
 You can specify further options:
 
-- ```-a``` or ```--address```: custom address of the server (default: 127.0.0.1)
-- ```-p``` or ```--port```: custom port of the server (default: 8080)
-- ```-b``` or ```--blocks```: definitions of functions to be added to ```tags_fcts_as_blocks```, e.g.:
+- `-a` or `--address`: custom address of the server (default: 127.0.0.1)
+- `-p` or `--port`: custom port of the server (default: 8080)
+- `-b` or `--blocks`: definitions of functions to be added to `config.config.tags_fcts_as_blocks`, e.g.:
 
 ```bash
 python -m html_diff -b 'lambda tag: tag.name == "span" and "math-tex" in tag.attrs.get("class", [])'
 ```
+
+- `-u` or `--uncuttable-words`: prevent cutting words in the diff (modified words are entirely deleted and reinserted)
 

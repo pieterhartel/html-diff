@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "html-diff"
-version = "0.1.0"
+version = "0.2.0"
 description = "HTML-formatted diff'ing of HTML snippets"
 license = "AGPL-3.0+"
 authors = ["Quentin Wenger <quentin.wenger@oly-exams.org>"]
