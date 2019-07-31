@@ -27,6 +27,10 @@ from .config import config
 
 
 
+class Cache(dict):
+    pass
+
+
 class Match:
     @property
     def matching_length(self):
@@ -145,10 +149,22 @@ class TreeMatch(Match):
             + (0 if self.match_before is None else self.match_before.matching_length)
             + (0 if self.match_after is None else self.match_after.matching_length)
         )
+    @staticmethod
+    def ensure_cache(cache, key, value_fct):
+        if key in cache:
+            value = cache[key]
+        else:
+            value = value_fct()
+            cache[key] = value
+        return value
     @classmethod
-    def from_children(cls, a_children, b_children, reference_tag=None):
+    def from_children_cached(cls, a_children, b_children, cache, reference_tag=None):
         a_children = tuple(a_children)
         b_children = tuple(b_children)
+        key = (a_children, b_children, reference_tag)
+        return cls.ensure_cache(cache, key, lambda: cls.from_children(a_children, b_children, cache, reference_tag))
+    @classmethod
+    def from_children(cls, a_children, b_children, cache, reference_tag=None):
         best_match = (None, None, None)
         for a_index, a_child in enumerate(a_children):
             for b_index, b_child in enumerate(b_children):
@@ -157,7 +173,7 @@ class TreeMatch(Match):
                     isinstance(a_child, bs4.element.NavigableString)
                     and isinstance(b_child, bs4.element.NavigableString)
                 ):
-                    match = StringLeafMatch(a_child, b_child)
+                    match = cls.ensure_cache(cache, (a_child, b_child), lambda: StringLeafMatch(a_child, b_child))
                 elif (
                     isinstance(a_child, bs4.element.Tag)
                     and isinstance(b_child, bs4.element.Tag)
@@ -165,23 +181,26 @@ class TreeMatch(Match):
                     and a_child.attrs == b_child.attrs
                 ):
                     if any(fct(a_child) for fct in config.tags_fcts_as_blocks):
-                        match = BlockLeafMatch(a_child, b_child)
+                        match = cls.ensure_cache(cache, (a_child, b_child), lambda: BlockLeafMatch(a_child, b_child))
                     else:
-                        match = cls.from_children(a_child.children, b_child.children, a_child)
+                        match = cls.from_children_cached(a_child.children, b_child.children, cache, a_child)
                 if (
                     match is not None
                     and (best_match[0] is None or best_match[0].matching_length < match.matching_length)
                 ):
                     best_match = (match, a_index, b_index)
         if best_match[0] is None:
-            return cls(NoLeafMatch(a_children, b_children), reference_tag=reference_tag)
+            return cls(
+                cls.ensure_cache(cache, (a_children, b_children), lambda: NoLeafMatch(a_children, b_children)),
+                reference_tag=reference_tag,
+            )
         else:
             match_before = None
             match_after = None
             if best_match[1] > 0 or best_match[2] > 0:
-                match_before = cls.from_children(a_children[:best_match[1]], b_children[:best_match[2]])
+                match_before = cls.from_children_cached(a_children[:best_match[1]], b_children[:best_match[2]], cache)
             if best_match[1] + 1 < len(a_children) or best_match[2] + 1 < len(b_children):
-                match_after = cls.from_children(a_children[best_match[1] + 1:], b_children[best_match[2] + 1:])
+                match_after = cls.from_children_cached(a_children[best_match[1] + 1:], b_children[best_match[2] + 1:], cache)
             return cls(best_match[0], match_before, match_after, reference_tag)
     def dump_to_tag_list(self, soup):
         tags = []
@@ -203,6 +222,6 @@ def diff(a, b):
     a_soup = bs4.BeautifulSoup(a, "html.parser")
     b_soup = bs4.BeautifulSoup(b, "html.parser")
     c_soup = bs4.BeautifulSoup("", "html.parser")
-    c_soup.extend(TreeMatch.from_children(a_soup.children, b_soup.children).dump_to_tag_list(c_soup))
+    c_soup.extend(TreeMatch.from_children_cached(a_soup.children, b_soup.children, Cache()).dump_to_tag_list(c_soup))
     return str(c_soup)
 
