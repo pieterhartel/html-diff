@@ -16,13 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 import difflib
 import re
 
 import bs4
 
+from .config import Config
 from .config import config
 
 
@@ -39,52 +40,66 @@ class Match:
         raise NotImplementedError
 
 
+def iter_cut_words(s):
+    for x in re.split(r"(\W)", s):
+        if x:
+            yield x
+
+
 class StringLeafMatch(Match):
     def __init__(self, a, b):
-        if config.cuttable_words:
+        if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
+            self.a = list(iter_cut_words(a))
+            self.b = list(iter_cut_words(b))
+        else:
             self.a = a
             self.b = b
-        else:
-            self.a = self.cut(a)
-            self.b = self.cut(b)
         self.sm = difflib.SequenceMatcher(a=self.a, b=self.b)
-    @staticmethod
-    def cut(s):
-        return [x for x in re.split(r"(\W)", s) if x]
     @property
     def matching_length(self):
-        if config.cuttable_words:
-            return sum(b.size for b in self.sm.get_matching_blocks())
-        else:
+        if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
             return sum(len(x) for b in self.sm.get_matching_blocks() for x in self.a[b.a:b.a + b.size])
+        else:
+            return sum(b.size for b in self.sm.get_matching_blocks())
     def dump_to_tag_list(self, soup):
         if self.a == self.b:
-            if config.cuttable_words:
-                return [self.a]
-            else:
+            if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
                 return ["".join(self.a)]
+            else:
+                return [self.a]
         else:
             tags = []
-            for opcode, i1, i2, j1, j2 in self.sm.get_opcodes():
-                if opcode == "equal":
-                    if config.cuttable_words:
-                        tags.append(self.a[i1:i2])
-                    else:
-                        tags.append("".join(self.a[i1:i2]))
-                if opcode in ("delete", "replace"):
+            if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_PRECISE:
+                if self.a:
                     tag = soup.new_tag("del")
-                    if config.cuttable_words:
-                        tag.append(self.a[i1:i2])
-                    else:
-                        tag.append("".join(self.a[i1:i2]))
+                    tag.append(self.a)
                     tags.append(tag)
-                if opcode in ("insert", "replace"):
+                if self.b:
                     tag = soup.new_tag("ins")
-                    if config.cuttable_words:
-                        tag.append(self.b[j1:j2])
-                    else:
-                        tag.append("".join(self.b[j1:j2]))
+                    tag.append(self.b)
                     tags.append(tag)
+                return tags
+            else:
+                for opcode, i1, i2, j1, j2 in self.sm.get_opcodes():
+                    if opcode == "equal":
+                        if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
+                            tags.append("".join(self.a[i1:i2]))
+                        else:
+                            tags.append(self.a[i1:i2])
+                    if opcode in ("delete", "replace"):
+                        tag = soup.new_tag("del")
+                        if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
+                            tag.append("".join(self.a[i1:i2]))
+                        else:
+                            tag.append(self.a[i1:i2])
+                        tags.append(tag)
+                    if opcode in ("insert", "replace"):
+                        tag = soup.new_tag("ins")
+                        if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
+                            tag.append("".join(self.b[j1:j2]))
+                        else:
+                            tag.append(self.b[j1:j2])
+                        tags.append(tag)
             return tags
 
 
@@ -157,10 +172,20 @@ class TreeMatch(Match):
             value = value_fct()
             cache[key] = value
         return value
+    @staticmethod
+    def cut_words(children):
+        if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_PRECISE:
+            for child in children:
+                if isinstance(child, (bs4.element.NavigableString, str)):
+                    yield from iter_cut_words(child)
+                else:
+                    yield child
+        else:
+            yield from children
     @classmethod
     def from_children_cached(cls, a_children, b_children, cache, reference_tag=None):
-        a_children = tuple(a_children)
-        b_children = tuple(b_children)
+        a_children = tuple(cls.cut_words(a_children))
+        b_children = tuple(cls.cut_words(b_children))
         key = (a_children, b_children, reference_tag)
         return cls.ensure_cache(cache, key, lambda: cls.from_children(a_children, b_children, cache, reference_tag))
     @classmethod
@@ -170,8 +195,8 @@ class TreeMatch(Match):
             for b_index, b_child in enumerate(b_children):
                 match = None
                 if (
-                    isinstance(a_child, bs4.element.NavigableString)
-                    and isinstance(b_child, bs4.element.NavigableString)
+                    isinstance(a_child, (bs4.element.NavigableString, str))
+                    and isinstance(b_child, (bs4.element.NavigableString, str))
                 ):
                     match = cls.ensure_cache(cache, (a_child, b_child), lambda: StringLeafMatch(a_child, b_child))
                 elif (

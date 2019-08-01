@@ -30,6 +30,7 @@ import bs4
 
 from html_diff import diff
 from html_diff.check import is_diff_valid
+from html_diff.config import Config
 from html_diff.config import config
 
 
@@ -166,12 +167,20 @@ if __name__ == "__main__":
         help="definitions of tag -> bool functions to append to tags_fcts_as_blocks",
         action="append",
     )
-    parser.add_argument("-u", "--uncuttable-words", help="prevent cutting words", action="store_true")
+    parser.add_argument(
+        "-c",
+        "--cuttable-words-mode",
+        help="cuttable words mode, one of {} (default: CUTTABLE)".format(", ".join(m.name for m in Config.CuttableWordsMode)),
+        type=lambda c: Config.CuttableWordsMode[c],
+        choices=Config.CuttableWordsMode,
+        default=Config.CuttableWordsMode.CUTTABLE,
+        metavar="CUTTABLE_MODE",
+    )
     args = parser.parse_args()
     if args.blocks is not None:
         for fct_def in args.blocks:
             config.tags_fcts_as_blocks.append(eval(fct_def))
-    config.cuttable_words = not args.uncuttable_words
+    config.cuttable_words_mode = args.cuttable_words_mode
     print("Starting server...")
     address = "127.0.0.1" if args.address is None else args.address
     port = 8080 if args.port is None else args.port

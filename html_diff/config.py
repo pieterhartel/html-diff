@@ -16,9 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from enum import Enum
+
+
 
 class Config:
-    pass
+    class CuttableWordsMode(Enum):
+        CUTTABLE = 0
+        UNCUTTABLE_SIMPLE = 1
+        UNCUTTABLE_PRECISE = 2
 
 
 config = Config()
@@ -27,5 +33,5 @@ config.tags_fcts_as_blocks = [
     lambda tag: tag.is_empty_element,
 ]
 
-config.cuttable_words = True
+config.cuttable_words_mode = Config.CuttableWordsMode.CUTTABLE
 
