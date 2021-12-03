@@ -47,39 +47,14 @@ With it:
 The functions in `config.config.tags_fcts_as_blocks` should take a `bs4.element.Tag` as input and return a `bool`; the tags are tested against all functions in the list, and are considered insecable blocks if any call returns `True`.
 
 
-### Word cutting in diff
+### Score for tags
 
-By default, the diff'ing algorithm for plain text parts does not care about words - if a word part is modified, that part gets `<del>`'ed and `<ins>`'ed, while the rest of the word remains untouched. It may however be more readable to have full words deleted and reinserted. To ensure this, switch `config.config.cuttable_words_mode` to either `config.Config.CuttableWordsMode.UNCUTTABLE_SIMPLE` or `config.Config.CuttableWordsMode.UNCUTTABLE_PRECISE`:
-
-
-`config.config.cuttable_words_mode == config.Config.CuttableWordsMode.CUTTABLE` (default):
+HTML tags have a base score associated, which is added to there content score. This base score can be configured:
 
 ```python
->>> diff("OlyExams", "ExamTools")
-'<del>Oly</del>Exam<ins>Tool</ins>s'
->>> diff("abcdef<br/>ghifjk", "abcdef ghifjk")
-'abcdef<ins> ghifjk</ins><del><br/>ghifjk</del>'
+>>> config.EMPTY_ELEMENT_SCORE # default: 2
+>>> config.OTHER_ELEMENT_SCORE # default: 2
 ```
-
-`config.config.cuttable_words_mode == config.Config.CuttableWordsMode.UNCUTTABLE_SIMPLE` (fast and gives acceptable results):
-
-```python
->>> diff("OlyExams", "ExamTools")
-'<del>OlyExams</del><ins>ExamTools</ins>'
->>> diff("abcdef<br/>ghifjk", "abcdef ghifjk")
-'abcdef<ins> ghifjk</ins><del><br/>ghifjk</del>'
-```
-
-`config.config.cuttable_words_mode == config.Config.CuttableWordsMode.UNCUTTABLE_PRECISE` (quite slow, but uses early word breaking for better matching, in particular if plain string parts of the inputs were split or merged between *old* and *new):
-
-```python
->>> diff("OlyExams", "ExamTools")
-'<del>OlyExams</del><ins>ExamTools</ins>'
->>> diff("abcdef<br/>ghifjk", "abcdef ghifjk")
-'abcdef<del><br/></del><ins> </ins>ghifjk'
-```
-
-In uncuttable words modes, non-word characters correspond to `re`'s `\W` pattern.
 
 
 ### Reconstructing *old* and *new* from *diff*
@@ -138,7 +113,72 @@ python -m html_diff -b 'lambda tag: tag.name == "span" and "math-tex" in tag.att
 
 ## Algorithm
 
+The new implementation uses an algorithm that is closer to `difflib.SequenceMatcher`, although it does ironically not use it anymore.
+
+The algorithm is similar to the legacy implementation with the `UNCUTTABLE_PRECISE` configuration, with the difference that it uses a Ratcliff-Obershelp-like procedure (best-matching subsequence) on all levels rather than testing all combinations to find the optimum. It is thus faster.
+
+
 ### Matching
+
+1. Parse the inputs with `BeautifulSoup4`; this yields two iterables of elements, either `bs4.element.NavigableString` or `bs4.element.Tag`.
+2. On the top level of the HTML structure, split the `bs4.element.NavigableString`'s in words (using `re`'s `\W` pattern), then find the best-matching subsequence, using a score:
+	- identical words: the length of the word,
+	- `bs4.element.Tag`'s where the `name` and `attrs` attributes match exactly:
+		- if the tags are considered as blocks (those that test `True` with a function of `config.config.tags_fcts_as_blocks`): `config.EMPTY_ELEMENT_SCORE` if the tags are *empty*, else `config.OTHER_ELEMENT_SCORE` plus the length of the string content of the tags,
+		- else, `config.OTHER_ELEMENT_SCORE` plus the sum of the scores of the tags' contents (calculated recursively).
+3. On the left and the right of the best-matching subsequence, repeat 2. If non-matchable subsequences remain, assign them a score of 0 and treat them as completely deleted/inserted.
+
+
+### Dumping
+
+4. With those tree match structures, dumping can be done directly, recursively, by dumping the `node_left` first, then the matched subsequence, finally the `node_right`. Matches are always exact and thus can be dumped as-is, except for non-matchables subsequences that are first completely deleted and then completely reinserted.
+5. Dumping is done in a `BeautifulSoup4` soup, then output as a string.
+
+
+## Legacy implementation
+
+The legacy implementation is available in `html_diff.legacy`.
+
+
+### Word cutting in diff
+
+By default, the diff'ing algorithm for plain text parts does not care about words - if a word part is modified, that part gets `<del>`'ed and `<ins>`'ed, while the rest of the word remains untouched. It may however be more readable to have full words deleted and reinserted. To ensure this, switch `config.config.cuttable_words_mode` to either `config.Config.CuttableWordsMode.UNCUTTABLE_SIMPLE` or `config.Config.CuttableWordsMode.UNCUTTABLE_PRECISE`:
+
+
+`config.config.cuttable_words_mode == config.Config.CuttableWordsMode.CUTTABLE` (default):
+
+```python
+>>> from html_diff.legacy import diff as ldiff
+>>> ldiff("OlyExams", "ExamTools")
+'<del>Oly</del>Exam<ins>Tool</ins>s'
+>>> ldiff("abcdef<br/>ghifjk", "abcdef ghifjk")
+'abcdef<ins> ghifjk</ins><del><br/>ghifjk</del>'
+```
+
+`config.config.cuttable_words_mode == config.Config.CuttableWordsMode.UNCUTTABLE_SIMPLE` (fast and gives acceptable results):
+
+```python
+>>> ldiff("OlyExams", "ExamTools")
+'<del>OlyExams</del><ins>ExamTools</ins>'
+>>> ldiff("abcdef<br/>ghifjk", "abcdef ghifjk")
+'abcdef<ins> ghifjk</ins><del><br/>ghifjk</del>'
+```
+
+`config.config.cuttable_words_mode == config.Config.CuttableWordsMode.UNCUTTABLE_PRECISE` (quite slow, but uses early word breaking for better matching, in particular if plain string parts of the inputs were split or merged between *old* and *new*):
+
+```python
+>>> ldiff("OlyExams", "ExamTools")
+'<del>OlyExams</del><ins>ExamTools</ins>'
+>>> ldiff("abcdef<br/>ghifjk", "abcdef ghifjk")
+'abcdef<del><br/></del><ins> </ins>ghifjk'
+```
+
+In uncuttable words modes, non-word characters correspond to `re`'s `\W` pattern.
+
+
+### Algorithm
+
+#### Matching
 
 1. Parse the inputs with `BeautifulSoup4`; this yields two iterables of elements, either `bs4.element.NavigableString` or `bs4.element.Tag`.
 2. Compare each element of the first iterable with each element of the second one. A match is only allowed in two cases:
@@ -152,8 +192,7 @@ python -m html_diff -b 'lambda tag: tag.name == "span" and "math-tex" in tag.att
 5. Regions without match are stored as "no-matches". With them, both iterables are completely covered by matches and no-matches.
 
 
-### Dumping
+#### Dumping
 
 6. With those tree match structures, dumping can be done directly, recursively, by dumping the `match_before` first, then the matched element itself, finally the `match_after`. Matched `bs4.element.NavigableString`'s are dumped parts by parts following the blocks (of words or of characters, depending on the *cuttable words mode* configuration) found by `difflib.SequenceMatcher`. Matched `bs4.element.Tag`'s to be treated as blocks are either dumped without change if fully matching, else are first completely deleted and then completely reinserted. No-matches elements are dumped as completely deleted and completely inserted.
 7. Dumping is done in a `BeautifulSoup4` soup, then output as a string.
-
