@@ -1,6 +1,6 @@
 # HTML-Diff
 #
-# Copyright (C) 2019 Quentin Wenger
+# Copyright (C) 2019-2021 Quentin Wenger
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -33,5 +33,7 @@ config.tags_fcts_as_blocks = [
     lambda tag: tag.is_empty_element,
 ]
 
-config.cuttable_words_mode = Config.CuttableWordsMode.CUTTABLE
+config.EMPTY_ELEMENT_SCORE = 2
+config.OTHER_ELEMENT_SCORE = 2
 
+config.cuttable_words_mode = Config.CuttableWordsMode.CUTTABLE

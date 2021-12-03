@@ -1,6 +1,6 @@
 # HTML-Diff
 #
-# Copyright (C) 2019 Quentin Wenger
+# Copyright (C) 2019-2021 Quentin Wenger
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -28,7 +28,8 @@ from urllib.parse import parse_qs
 
 import bs4
 
-from html_diff import diff
+import html_diff
+import html_diff.legacy
 from html_diff.check import is_diff_valid
 from html_diff.config import Config
 from html_diff.config import config
@@ -104,6 +105,7 @@ html_template = """
 
 
 class TestRequestHandler(BaseHTTPRequestHandler):
+    diff_fct = html_diff.diff
     def do_GET(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -135,10 +137,10 @@ class TestRequestHandler(BaseHTTPRequestHandler):
                 new = str(bs4.BeautifulSoup(qs["new"][0], "html.parser"))
             else:
                 new = ""
-            diff_raw = diff(old, new)
+            diff_raw = type(self).diff_fct(old, new)
             old_rendered = old
             new_rendered = new
-            mean_time = "{:.5f}s".format(timeit.timeit(lambda: diff(old, new), number=10)/10.0)
+            mean_time = "{:.5f}s".format(timeit.timeit(lambda: type(self).diff_fct(old, new), number=10)/10.0)
         except Exception as e:
             old_rendered = ""
             new_rendered = ""
@@ -162,6 +164,12 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--address", help="address of the server")
     parser.add_argument("-p", "--port", help="port of the server", type=int)
     parser.add_argument(
+        "-l",
+        "--legacy",
+        help="use legacy implementation",
+        action="store_true",
+    )
+    parser.add_argument(
         "-b",
         "--blocks",
         help="definitions of tag -> bool functions to append to tags_fcts_as_blocks",
@@ -170,21 +178,36 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c",
         "--cuttable-words-mode",
-        help="cuttable words mode, one of {} (default: CUTTABLE)".format(", ".join(m.name for m in Config.CuttableWordsMode)),
+        help="cuttable words mode, one of {} (default: CUTTABLE) (only useful with --legacy)".format(", ".join(m.name for m in Config.CuttableWordsMode)),
         type=lambda c: Config.CuttableWordsMode[c],
         choices=Config.CuttableWordsMode,
         default=Config.CuttableWordsMode.CUTTABLE,
         metavar="CUTTABLE_MODE",
+    )
+    parser.add_argument(
+        "--empty-element-score",
+        help="score for empty tags (only useful without --legacy)",
+        type=int,
+        default=config.EMPTY_ELEMENT_SCORE,
+    )
+    parser.add_argument(
+        "--other-element-score",
+        help="score for other tags (only useful without --legacy)",
+        type=int,
+        default=config.OTHER_ELEMENT_SCORE,
     )
     args = parser.parse_args()
     if args.blocks is not None:
         for fct_def in args.blocks:
             config.tags_fcts_as_blocks.append(eval(fct_def))
     config.cuttable_words_mode = args.cuttable_words_mode
+    config.EMPTY_ELEMENT_SCORE = args.empty_element_score
+    config.OTHER_ELEMENT_SCORE = args.other_element_score
+    if args.legacy:
+        TestRequestHandler.diff_fct = html_diff.legacy.diff
     print("Starting server...")
     address = "127.0.0.1" if args.address is None else args.address
     port = 8080 if args.port is None else args.port
     httpd = HTTPServer((address, port), TestRequestHandler)
     print("Running server...")
     httpd.serve_forever()
-

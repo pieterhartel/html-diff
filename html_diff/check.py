@@ -1,6 +1,6 @@
 # HTML-Diff
 #
-# Copyright (C) 2019 Quentin Wenger
+# Copyright (C) 2019-2021 Quentin Wenger
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -30,4 +30,3 @@ def old_from_diff(diff):
 
 def is_diff_valid(old, new, diff):
     return old == old_from_diff(diff) and new == new_from_diff(diff)
-
