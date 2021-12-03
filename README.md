@@ -40,6 +40,8 @@ Without it (does not render correctly with MathJax):
 With it:
 
 ```python
+>>> from html_diff import clear_cache
+>>> clear_cache()
 >>> diff(r'<span class="math-tex">\(\vec{v}\)</span>', r'<span class="math-tex">\(\vec{w}\)</span>')
 '<del><span class="math-tex">\\(\\vec{v}\\)</span></del><ins><span class="math-tex">\\(\\vec{w}\\)</span></ins>'
 ```
@@ -55,6 +57,8 @@ HTML tags have a base score associated, which is added to there content score. T
 >>> config.EMPTY_ELEMENT_SCORE # default: 2
 >>> config.OTHER_ELEMENT_SCORE # default: 2
 ```
+
+WARNING: some results are cached and changing the config does not invalidate the cache, thus the results may be wrong afterwards. Call `clear_cache()` to reset the cache.
 
 
 ### Reconstructing *old* and *new* from *diff*

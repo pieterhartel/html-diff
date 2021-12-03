@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 import re
 
@@ -30,8 +30,8 @@ class NodeString:
     def __init__(self, ai):
         self.ai = ai
         self.s = len(self.ai)
-    def dump_to_tag(self, soup):
-        return self.ai
+    def dump_to_tag_list(self, soup):
+        return [self.ai]
 
 
 pattern = re.compile(r"(\W)")
@@ -50,29 +50,44 @@ def split_contents(contents):
 
 
 class NodeOtherTag:
-    def __init__(self, ai, bi):
+    def __init__(self, ai, bi, main=False):
         self.ai = ai
+        self.main = main
         ac = split_contents(ai.contents)
         bc = split_contents(bi.contents)
         self.node = Node(ac, bc, 0, 0, len(ac), len(bc))
         self.s = self.node.s + config.OTHER_ELEMENT_SCORE
-    def dump_to_tag(self, soup):
-        tag = soup.new_tag(self.ai.name, attrs=self.ai.attrs)
-        tag.extend(self.dump_to_tag_list(soup))
-        return tag
     def dump_to_tag_list(self, soup):
-        return self.node.dump_to_tag_list(soup)
+        if self.main:
+            return self.node.dump_to_tag_list(soup)
+        else:
+            tag = soup.new_tag(self.ai.name, attrs=self.ai.attrs)
+            tag.extend(self.node.dump_to_tag_list(soup))
+            return [tag]
 
 
 class NodeBlockTag:
-    def __init__(self, ai):
+    def __init__(self, ai, bi):
         self.ai = ai
+        self.bi = bi
         if ai.is_empty_element:
             self.s = config.EMPTY_ELEMENT_SCORE
-        else:
+        elif ai.string == bi.string:
             self.s = len(ai.string) + config.OTHER_ELEMENT_SCORE
-    def dump_to_tag(self, soup):
-        return self.ai
+        else:
+            self.s = config.OTHER_ELEMENT_SCORE
+    def dump_to_tag_list(self, soup):
+        if self.ai.is_empty_element:
+            return [self.ai]
+        else:
+            if self.ai.string == self.bi.string:
+                return [self.ai]
+            else:
+                dtag = soup.new_tag("del")
+                dtag.append(self.ai)
+                itag = soup.new_tag("ins")
+                itag.append(self.bi)
+                return [dtag, itag]
 
 
 c = {}
@@ -87,6 +102,9 @@ def cache(fct):
             return r
     return f
 
+def clear_cache():
+    c.clear()
+
 
 @cache
 def node_element(ai, bi):
@@ -96,7 +114,7 @@ def node_element(ai, bi):
     elif isinstance(ai, bs4.element.Tag) and isinstance(bi, bs4.element.Tag):
         if ai.name == bi.name and ai.attrs == bi.attrs:
             if any(fct(ai) for fct in config.tags_fcts_as_blocks):
-                return NodeBlockTag(ai)
+                return NodeBlockTag(ai, bi)
             else:
                 return NodeOtherTag(ai, bi)
     return None
@@ -134,7 +152,7 @@ class Range:
         self.ns = ns
         self.s = s
     def dump_to_tag_list(self, soup):
-        return [n.dump_to_tag(soup) for n in self.ns]
+        return [t for n in self.ns for t in n.dump_to_tag_list(soup)]
 
 
 class NodeNoMatch:
@@ -187,5 +205,5 @@ def diff(a, b):
     a_soup = bs4.BeautifulSoup(a, "html.parser")
     b_soup = bs4.BeautifulSoup(b, "html.parser")
     c_soup = bs4.BeautifulSoup("", "html.parser")
-    c_soup.extend(NodeOtherTag(a_soup, b_soup).dump_to_tag_list(c_soup))
+    c_soup.extend(NodeOtherTag(a_soup, b_soup, True).dump_to_tag_list(c_soup))
     return str(c_soup)

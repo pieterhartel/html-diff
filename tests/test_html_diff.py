@@ -96,6 +96,10 @@ class TestHTMLDiff(unittest.TestCase):
             self.assertEqual(d, di)
             self.assertEqual(old, old_from_diff(d))
             self.assertEqual(new, new_from_diff(d))
+    def test_blocks(self):
+        config.tags_fcts_as_blocks.append(lambda tag: tag.name == "i")
+        self.assertEqual(diff("<i>x</i>", "<i>y</i>"), "<del><i>x</i></del><ins><i>y</i></ins>")
+
 
 
 if __name__ == "__main__":
