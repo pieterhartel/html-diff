@@ -17,7 +17,7 @@ HTML-Diff focusses on providing *valid* diffs, that is:
 ```python
 >>> from html_diff import diff
 >>> diff("<em>ABC</em>", "<em>AB</em>C")
-'<em>AB<del>C</del></em><ins>C</ins>'
+'<em><del>ABC</del><ins>AB</ins></em><ins>C</ins>'
 ```
 
 
