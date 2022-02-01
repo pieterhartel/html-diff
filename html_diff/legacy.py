@@ -69,11 +69,11 @@ class StringLeafMatch(Match):
             tags = []
             if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_PRECISE:
                 if self.a:
-                    tag = soup.new_tag("del")
+                    tag = soup.new_tag("diff:delete")
                     tag.append(self.a)
                     tags.append(tag)
                 if self.b:
-                    tag = soup.new_tag("ins")
+                    tag = soup.new_tag("diff:insert")
                     tag.append(self.b)
                     tags.append(tag)
                 return tags
@@ -85,14 +85,14 @@ class StringLeafMatch(Match):
                         else:
                             tags.append(self.a[i1:i2])
                     if opcode in ("delete", "replace"):
-                        tag = soup.new_tag("del")
+                        tag = soup.new_tag("diff:delete")
                         if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
                             tag.append("".join(self.a[i1:i2]))
                         else:
                             tag.append(self.a[i1:i2])
                         tags.append(tag)
                     if opcode in ("insert", "replace"):
-                        tag = soup.new_tag("ins")
+                        tag = soup.new_tag("diff:insert")
                         if config.cuttable_words_mode == Config.CuttableWordsMode.UNCUTTABLE_SIMPLE:
                             tag.append("".join(self.b[j1:j2]))
                         else:
@@ -119,11 +119,11 @@ class BlockLeafMatch(Match):
         else:
             tags = []
             if self.a:
-                tag = soup.new_tag("del")
+                tag = soup.new_tag("diff:delete")
                 tag.append(self.a)
                 tags.append(tag)
             if self.b:
-                tag = soup.new_tag("ins")
+                tag = soup.new_tag("diff:insert")
                 tag.append(self.b)
                 tags.append(tag)
             return tags
@@ -139,11 +139,11 @@ class NoLeafMatch(Match):
     def dump_to_tag_list(self, soup):
         tags = []
         if self.a_s:
-            tag = soup.new_tag("del")
+            tag = soup.new_tag("diff:delete")
             tag.extend(self.a_s)
             tags.append(tag)
         if self.b_s:
-            tag = soup.new_tag("ins")
+            tag = soup.new_tag("diff:insert")
             tag.extend(self.b_s)
             tags.append(tag)
         return tags
