@@ -1,6 +1,8 @@
 # HTML-Diff: HTML-formatted diff'ing of HTML snippets
 
-Compares two HTML snippets strings and returns the diff as a valid HTML snippet with changes wrapped in `<del>` and `<ins>` tags.
+Compares two HTML snippets strings and returns the diff as a valid HTML snippet with changes wrapped in `<diff:delete>` and `<diff:insert>` tags. 
+
+The tags are referred to by their old names `<del>` and `<ins>` in the description below.
 
 Relies on `BeautifulSoup4` with `html.parser` backend for HTML parsing and dumping.
 
