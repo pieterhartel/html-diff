@@ -83,9 +83,9 @@ class NodeBlockTag:
             if self.ai.string == self.bi.string:
                 return [self.ai]
             else:
-                dtag = soup.new_tag("del")
+                dtag = soup.new_tag("diff:delete")
                 dtag.append(self.ai)
-                itag = soup.new_tag("ins")
+                itag = soup.new_tag("diff:insert")
                 itag.append(self.bi)
                 return [dtag, itag]
 
@@ -167,11 +167,11 @@ class NodeNoMatch:
     def dump_to_tag_list(self, soup):
         tags = []
         if self.ar > self.al:
-            tag = soup.new_tag("del")
+            tag = soup.new_tag("diff:delete")
             tag.extend(self.a[self.al:self.ar])
             tags.append(tag)
         if self.br > self.bl:
-            tag = soup.new_tag("ins")
+            tag = soup.new_tag("diff:insert")
             tag.extend(self.b[self.bl:self.br])
             tags.append(tag)
         return tags
